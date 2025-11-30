@@ -13,7 +13,12 @@ class EmailSchema(BaseModel):
     email: EmailStr
 
 def get_mail_config():
-    """Get mail configuration from environment variables"""
+    """
+    Get mail configuration from environment variables
+    
+    Returns:
+        ConnectionConfig: The mail configuration object.
+    """
     return ConnectionConfig(
         MAIL_USERNAME=os.getenv('MAIL_USERNAME'),
         MAIL_PASSWORD=os.getenv('MAIL_PASSWORD'),
@@ -29,6 +34,14 @@ def get_mail_config():
     )
 
 async def send_email_verification(email: EmailStr, username: str, host: str) -> None:
+    """
+    Send an email verification message to the specified email address.
+
+    Args:
+        email (EmailStr): The recipient's email address.
+        username (str): The recipient's username.
+        host (str): The host URL for constructing the verification link.
+    """
     try:
         print(f"[EMAIL] Starting email verification send to: {email}")
         print(f"[EMAIL] SMTP Server: {os.getenv('MAIL_SERVER')}:{os.getenv('MAIL_PORT')}")

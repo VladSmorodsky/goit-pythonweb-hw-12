@@ -15,6 +15,15 @@ class UploadFileService:
 
     @staticmethod
     def upload_file(file, username) -> str:
+        """
+        Upload a file to Cloudinary and return the URL.
+        
+        Args:
+            file (UploadFile): The file to upload.
+            username (str): The username to associate with the file.
+        Returns:
+            str: The URL of the uploaded file.
+        """
         public_id = f"RestApp/{username}"
         r = cloudinary.uploader.upload(file.file, public_id=public_id, overwrite=True)
         src_url = cloudinary.CloudinaryImage(public_id).build_url(
