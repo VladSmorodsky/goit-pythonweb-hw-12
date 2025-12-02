@@ -16,9 +16,9 @@ load_dotenv(env_path)
 from src.database.db import get_db
 from src.services.user import UserService
 
-JWT_SECRET = os.getenv("JWT_SECRET")
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
-JWT_EXPIRATION_SECONDS = int(os.getenv("JWT_EXPIRATION_SECONDS"))
+JWT_SECRET = os.getenv("JWT_SECRET", "default_secret_key")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+JWT_EXPIRATION_SECONDS = int(os.getenv("JWT_EXPIRATION_SECONDS", "3600"))
 
 
 class Hash:
