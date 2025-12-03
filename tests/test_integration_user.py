@@ -2,7 +2,7 @@ from unittest.mock import Mock, patch
 from tests.conftest import test_user_data
 
 
-def test_get_me(client, get_token):
+def test_get_me(client, get_token, init_tables):
     token = get_token
     headers = {"Authorization": f"Bearer {token}"}
     response = client.get("api/users/me", headers=headers)

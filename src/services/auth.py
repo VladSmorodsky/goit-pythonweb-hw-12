@@ -93,7 +93,7 @@ def dict_to_user(data: dict) -> User:
         data["created_at"]) if data["created_at"] else None
     user.avatar = data["avatar"]
     user.confirmed = data["confirmed"]
-    user.role = UserRole(data.get("role", "user"))
+    user.role = UserRole(data.get("role", "USER"))
     return user
 
 

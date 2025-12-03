@@ -7,8 +7,8 @@ class Base(DeclarativeBase):
     pass
 
 class UserRole(str, PyEnum):
-    ADMIN = "admin"
-    USER = "user"
+    ADMIN = "ADMIN"
+    USER = "USER"
 
 class User(Base):
     __tablename__ = "users"

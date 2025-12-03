@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 
 
 from main import app
-from src.database.models import Base, User
+from src.database.models import Base, User, UserRole
 from src.database.db import get_db
 from src.services.auth import create_access_token, Hash
 from src.utils import cache as cache_module
@@ -63,6 +63,7 @@ def init_tables():
                 username=test_user_data["username"],
                 email=test_user_data["email"],
                 password=hashed_password,
+                role=UserRole.ADMIN,
             )
             session.add(test_user)
             await session.commit()

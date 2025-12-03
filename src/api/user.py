@@ -49,7 +49,7 @@ async def update_avatar_user(
         db (AsyncSession): The database session.
     Returns:
         UserResponse: The updated user's information."""
-    if user.role.value.lower() != "admin":
+    if user.role.value != "ADMIN":
         raise HTTPException(
             status_code=403, detail="Only users with admin role can update avatar.")
 
