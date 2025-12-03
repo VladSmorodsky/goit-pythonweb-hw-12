@@ -18,12 +18,13 @@ from src.services.upload_file import UploadFileService
 router = APIRouter(prefix="/users", tags=["users"])
 limiter = Limiter(key_func=get_remote_address)
 
+
 @router.get("/me", response_model=UserResponse)
 @limiter.limit("5/minute")
-async def read_current_user(request: Request, current_user = Depends(get_current_user)):
+async def read_current_user(request: Request, current_user=Depends(get_current_user)):
     """
     Retrieve the currently authenticated user's information.
-    
+
     Args:
         request (Request): The incoming request object.
         current_user (User): The currently authenticated user.
@@ -31,6 +32,7 @@ async def read_current_user(request: Request, current_user = Depends(get_current
         UserResponse: The current user's information.
     """
     return current_user
+
 
 @router.patch("/avatar", response_model=UserResponse)
 async def update_avatar_user(
@@ -40,7 +42,7 @@ async def update_avatar_user(
 ):
     """
     Update the avatar of the currently authenticated user.
-    
+
     Args:
         file (UploadFile): The new avatar file.
         user (User): The currently authenticated user.
@@ -48,7 +50,8 @@ async def update_avatar_user(
     Returns:
         UserResponse: The updated user's information."""
     avatar_url = UploadFileService(
-        os.getenv("CLOUDINARY_NAME"),  os.getenv("CLOUDINARY_API_KEY"), os.getenv("CLOUDINARY_API_SECRET")
+        os.getenv("CLOUDINARY_NAME"),  os.getenv(
+            "CLOUDINARY_API_KEY"), os.getenv("CLOUDINARY_API_SECRET")
     ).upload_file(file, user.username)
 
     user_service = UserService(db)

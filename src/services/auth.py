@@ -183,17 +183,34 @@ def create_email_token(data: dict):
     """
     to_encode = data.copy()
     expire = datetime.now(UTC) + timedelta(days=7)
-    to_encode.update({"iat": datetime.now(UTC), "exp": expire})
+    to_encode.update({"iat": datetime.now(UTC), "exp": expire, "type": "email_verification"})
     token = jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
     return token
 
 
-async def get_email_from_token(token: str):
+def create_password_reset_token(data: dict):
+    """
+    Create a JWT token for password reset with shorter expiration.
+
+    Args:
+        data (dict): The data to include in the token payload.
+    Returns:
+        str: The encoded JWT token.
+    """
+    to_encode = data.copy()
+    expire = datetime.now(UTC) + timedelta(hours=1)  # 1 hour expiration for security
+    to_encode.update({"iat": datetime.now(UTC), "exp": expire, "type": "password_reset"})
+    token = jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return token
+
+
+async def get_email_from_token(token: str, expected_type: str = None):
     """
     Decode a JWT token to extract the email.
 
     Args:
         token (str): The JWT token.
+        expected_type (str): Optional token type to verify (e.g., "password_reset", "email_verification").
     Returns:
         str: The email extracted from the token.
     """
@@ -202,9 +219,17 @@ async def get_email_from_token(token: str):
             token, JWT_SECRET, algorithms=[JWT_ALGORITHM]
         )
         email = payload["sub"]
+
+        # Validate token type if specified
+        if expected_type and payload.get("type") != expected_type:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Invalid token type. Expected {expected_type}",
+            )
+
         return email
     except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Invalid token",
+            detail="Invalid or expired token",
         )

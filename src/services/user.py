@@ -86,3 +86,15 @@ class UserService:
             User: The user with updated avatar URL.
         """
         return await self.user_repository.update_avatar_url(email, url)
+    
+    async def change_password(self, email: str, new_password: str):
+        """
+        Change a user's password.
+        
+        Args:
+            email (str): The email of the user to update.
+            new_password (str): The new password.
+        Returns:
+            User: The user with updated password.
+        """
+        return await self.user_repository.change_password(email, new_password)
