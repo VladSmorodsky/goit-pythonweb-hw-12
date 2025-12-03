@@ -28,12 +28,6 @@ POSTGRES_DB = os.getenv("POSTGRES_DB")
 POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
 POSTGRES_PORT = os.getenv("POSTGRES_PORT")
 
-# For local development, use localhost instead of postgres hostname
-# When running inside Docker, the env var will be set to "postgres"
-if POSTGRES_HOST == "postgres":
-    # Running from host machine, use localhost
-    POSTGRES_HOST = "localhost"
-
 # Use async asyncpg driver for Alembic migrations
 DATABASE_URL = f"postgresql+asyncpg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 config.set_main_option("sqlalchemy.url", DATABASE_URL)

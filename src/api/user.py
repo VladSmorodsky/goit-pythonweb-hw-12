@@ -1,6 +1,6 @@
 import os
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import UploadFile, File
@@ -49,6 +49,10 @@ async def update_avatar_user(
         db (AsyncSession): The database session.
     Returns:
         UserResponse: The updated user's information."""
+    if user.role.value.lower() != "admin":
+        raise HTTPException(
+            status_code=403, detail="Only users with admin role can update avatar.")
+
     avatar_url = UploadFileService(
         os.getenv("CLOUDINARY_NAME"),  os.getenv(
             "CLOUDINARY_API_KEY"), os.getenv("CLOUDINARY_API_SECRET")

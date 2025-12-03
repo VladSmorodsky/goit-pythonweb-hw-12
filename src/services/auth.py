@@ -68,7 +68,8 @@ def user_to_dict(user: User) -> dict:
         "password": user.password,
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "avatar": user.avatar,
-        "confirmed": user.confirmed
+        "confirmed": user.confirmed,
+        "role": user.role.value if hasattr(user.role, 'value') else user.role
     }
 
 
@@ -81,6 +82,8 @@ def dict_to_user(data: dict) -> User:
     Returns:
         User: Reconstructed User object.
     """
+    from src.database.models import UserRole
+
     user = User()
     user.id = data["id"]
     user.username = data["username"]
@@ -90,6 +93,7 @@ def dict_to_user(data: dict) -> User:
         data["created_at"]) if data["created_at"] else None
     user.avatar = data["avatar"]
     user.confirmed = data["confirmed"]
+    user.role = UserRole(data.get("role", "user"))
     return user
 
 
