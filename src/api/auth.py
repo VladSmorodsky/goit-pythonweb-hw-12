@@ -68,7 +68,7 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Async
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email not confirmed",
         )
-    access_token = await create_access_token(data={"sub": str(user.id)})
+    access_token = await create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
 

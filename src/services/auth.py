@@ -1,7 +1,12 @@
+from src.utils.cache import cache
+from src.services.user import UserService
+from src.database.db import get_db
+from src.database.models import User
 from datetime import datetime, timedelta, UTC
 import os
 from pathlib import Path
 from typing import Optional
+import json
 
 from fastapi import Depends, HTTPException, status
 from passlib.context import CryptContext
@@ -13,8 +18,6 @@ from dotenv import load_dotenv
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(env_path)
 
-from src.database.db import get_db
-from src.services.user import UserService
 
 JWT_SECRET = os.getenv("JWT_SECRET", "default_secret_key")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
@@ -45,7 +48,49 @@ class Hash:
         """
         return self.pwd_context.hash(password)
 
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+
+def user_to_dict(user: User) -> dict:
+    """
+    Convert a User object to a dictionary for caching.
+
+    Args:
+        user (User): The User object to serialize.
+    Returns:
+        dict: Dictionary representation of the user.
+    """
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "password": user.password,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "avatar": user.avatar,
+        "confirmed": user.confirmed
+    }
+
+
+def dict_to_user(data: dict) -> User:
+    """
+    Convert a dictionary back to a User object.
+
+    Args:
+        data (dict): Dictionary representation of the user.
+    Returns:
+        User: Reconstructed User object.
+    """
+    user = User()
+    user.id = data["id"]
+    user.username = data["username"]
+    user.email = data["email"]
+    user.password = data["password"]
+    user.created_at = datetime.fromisoformat(
+        data["created_at"]) if data["created_at"] else None
+    user.avatar = data["avatar"]
+    user.confirmed = data["confirmed"]
+    return user
 
 
 async def create_access_token(data: dict, expires_delta: Optional[int] = None):
@@ -69,12 +114,13 @@ async def create_access_token(data: dict, expires_delta: Optional[int] = None):
     )
     return encoded_jwt
 
+
 async def get_current_user(
     token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ):
     """
     Get the currently authenticated user from the JWT token.
-    
+
     Args:
         token (str): The JWT token.
         db (Session): The database session.
@@ -91,22 +137,45 @@ async def get_current_user(
         payload = jwt.decode(
             token, JWT_SECRET, algorithms=[JWT_ALGORITHM]
         )
-        user_id = payload["sub"]
-        if user_id is None:
+        username = payload["sub"]
+        if username is None:
             raise credentials_exception
     except JWTError as e:
         raise credentials_exception
-    user_service = UserService(db)
-    user = await user_service.get_user_by_id(int(user_id))
-    if user is None:
-        raise credentials_exception
-    return user
+
+    cached_user_data = await cache.get(f"user:{username}")
+
+    if cached_user_data is None or cached_user_data == "":
+        user_service = UserService(db)
+        user = await user_service.get_user_by_username(username)
+        if user is None:
+            raise credentials_exception
+        # Serialize user to JSON and cache it
+        user_dict = user_to_dict(user)
+        await cache.set(f"user:{username}", json.dumps(user_dict))
+        return user
+
+    try:
+        user_dict = json.loads(cached_user_data)
+        user = dict_to_user(user_dict)
+        return user
+    except json.JSONDecodeError as e:
+        print(f"[CACHE ERROR] Failed to decode cached data: {e}")
+        # If cache is corrupted, fetch from DB
+        user_service = UserService(db)
+        user = await user_service.get_user_by_username(username)
+        if user is None:
+            raise credentials_exception
+        # Update cache with fresh data
+        user_dict = user_to_dict(user)
+        await cache.set(f"user:{username}", json.dumps(user_dict))
+        return user
 
 
 def create_email_token(data: dict):
     """
     Create a JWT token for email confirmation.
-    
+
     Args:
         data (dict): The data to include in the token payload.
     Returns:
@@ -122,7 +191,7 @@ def create_email_token(data: dict):
 async def get_email_from_token(token: str):
     """
     Decode a JWT token to extract the email.
-    
+
     Args:
         token (str): The JWT token.
     Returns:

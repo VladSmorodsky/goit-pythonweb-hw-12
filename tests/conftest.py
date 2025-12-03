@@ -17,6 +17,7 @@ from main import app
 from src.database.models import Base, User
 from src.database.db import get_db
 from src.services.auth import create_access_token, Hash
+from src.utils import cache as cache_module
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -45,6 +46,7 @@ test_user_data = {
     "password": "testpassword",
 }
 
+
 @pytest.fixture(scope="module")
 def init_tables():
     """
@@ -55,7 +57,8 @@ def init_tables():
             await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
         async with TestingSessionLocal() as session:
-            hashed_password = Hash().get_password_hash(test_user_data["password"])
+            hashed_password = Hash().get_password_hash(
+                test_user_data["password"])
             test_user = User(
                 username=test_user_data["username"],
                 email=test_user_data["email"],
@@ -65,9 +68,38 @@ def init_tables():
             await session.commit()
 
     asyncio.run(_init_tables())
-    
+
+
 @pytest.fixture(scope="module")
-def client():
+def mock_cache():
+    """
+    Mock the Redis cache to avoid connection errors during testing.
+    """
+    # Create a simple in-memory cache for testing
+    cache_dict = {}
+
+    async def mock_get(key: str):
+        return cache_dict.get(key)
+
+    async def mock_set(key: str, value: str, expire: int = 3600):
+        cache_dict[key] = value
+
+    # Replace the cache methods with mocks
+    original_get = cache_module.cache.get
+    original_set = cache_module.cache.set
+
+    cache_module.cache.get = mock_get
+    cache_module.cache.set = mock_set
+
+    yield cache_module.cache
+
+    # Restore original methods
+    cache_module.cache.get = original_get
+    cache_module.cache.set = original_set
+
+
+@pytest.fixture(scope="module")
+def client(mock_cache):
     """
     Create a TestClient for FastAPI app with overridden database dependency.
     """
@@ -82,7 +114,9 @@ def client():
     app.dependency_overrides[get_db] = override_get_db
     yield TestClient(app)
 
+
 @pytest.fixture(scope="module")
 def get_token() -> str:
-    token = asyncio.run(create_access_token(data={"sub": str(test_user_data["id"])}))
+    token = asyncio.run(create_access_token(
+        data={"sub": test_user_data["username"]}))
     return token
